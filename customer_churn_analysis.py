@@ -39,8 +39,6 @@ print(churn_rate)
 
 # The churn rate among the bank's customers irs 20.37 %. 
 
-<<<<<<< HEAD
-=======
 # Question 2: How are the different variables (gender, age, geography, etc.) distributed in the dataset?
 
 # For the numerical variables: 
@@ -201,4 +199,3 @@ for var1 in [v for v in categorical_var]:
 
     plt.tight_layout()        
     plt.show()
->>>>>>> 02a657cec0d069d149bea883cb7a8402d53bfd1a
