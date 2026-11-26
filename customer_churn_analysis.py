@@ -45,9 +45,9 @@ print(df.duplicated().sum())
 churn_rate = df["Exited"].sum() / len(df)
 print(churn_rate)
 
-# The churn rate among the bank's customers irs 20.37 %. 
+# The churn rate among the bank's customers is 20.37 %. 
 
-# Question 2: How are the different variables (gender, age, geography, etc.) distributed in the dataset?
+#%% Question 2: How are the different variables (gender, age, geography, etc.) distributed in the dataset?
 
 # For the numerical variables: 
 print(df.select_dtypes(include = np.number).describe().T.to_string())
@@ -63,7 +63,7 @@ for i, var in enumerate(categorical_var):
    #create subplots
    plt.subplot(3,2, i + 1)
 
-   plot = sns.countplot(data = df, x = var, stat = "proportion", palette="viridis")
+   plot = sns.countplot(data = df, x = var, stat = "proportion")
    #add percentage labels
    plot.bar_label(plot.containers[0], fmt="%.2f", padding = 3, label_type="center")
    #clearer than label "proportion"
@@ -82,7 +82,7 @@ plt.show()
 
 numerical_var = ["CreditScore", "Age", "Tenure", "Balance", "EstimatedSalary"]
 #descriptive statistics
-print(df[numerical_var].describe)
+print(df[numerical_var].describe())
 
 #histograms
 for var in numerical_var:
@@ -152,8 +152,7 @@ for var1 in [v for v in categorical_var]:
 
         #go through each value of weight_counts
         for boolean, weight_count in weight_counts.items():
-            p = ax.bar(values_var1, weight_count, label=boolean, bottom=bottom)
-    
+            p = ax.bar(values_var1, weight_count, label=boolean, bottom=bottom, color = sns.color_palette("viridis", len(weight_counts))[list(weight_counts).index(boolean)])    
             ax.bar_label(p, fmt="%.2f", label_type="center")
             #first add values for male, then for female
             bottom += weight_count
@@ -198,7 +197,7 @@ for var1 in [v for v in categorical_var]:
 
         #go through each value of weight_counts
         for boolean, weight_count in weight_counts.items():
-            p = ax.bar(values_var1, weight_count, label=boolean, bottom=bottom)
+            p = ax.bar(values_var1, weight_count, label=boolean, bottom=bottom, color = sns.color_palette("viridis", len(weight_counts))[list(weight_counts).index(boolean)])
             ax.bar_label(p, fmt="%.2f", label_type="center")
             #first add values for male, then for female
             bottom += weight_count
@@ -307,7 +306,8 @@ for var1 in x_axis_var:
 
         for category in shares.columns:
             weight_count = shares[category].to_numpy()
-            p = ax.bar(values_var1, weight_count, label=category, bottom=bottom)
+            p = ax.bar(values_var1, weight_count, label=category, bottom=bottom, 
+                       color=sns.color_palette("viridis", len(shares.columns))[list(shares.columns).index(category)])
             ax.bar_label(p, fmt="%.2f", label_type="center")
             bottom += weight_count
 
@@ -341,7 +341,8 @@ for var1 in x_axis_var:
 
         for category in shares.columns:
             weight_count = shares[category].to_numpy()
-            p = ax.bar(values_var1, weight_count, label=category, bottom=bottom)
+            p = ax.bar(values_var1, weight_count, label=category, bottom=bottom, 
+                       color=sns.color_palette("viridis", len(shares.columns))[list(shares.columns).index(category)])
             ax.bar_label(p, fmt="%.2f", label_type="center")
             bottom += weight_count
 
@@ -453,5 +454,117 @@ plot.legend(title="Country", loc="lower right")
 sns.despine()
 plt.tight_layout()
 plt.show()
+
+# %% Inputs lucile - analysis of churn
+# we saw that gender and country play the most role in explaining the churn rate, let's look at the interaction between the 2
+
+#computing the table with the churn rates
+churn_country_gender = df.pivot_table(
+    index = "Geography",
+    columns = "Gender",
+    values = "Exited",
+    #mean because exit is binary, *100 to get %
+    aggfunc = "mean") * 100
+
+#esthetics
+churn_country_gender = churn_country_gender.round(2)
+churn_country_gender.columns = ["Female churn (%)", "Male churn (%)"]
+churn_country_gender.index.name = "Country"
+
+print(churn_country_gender)
+
+# germany has highest churn rate for both gender
+# female have higher churn rate in all countries
+
+
+# %% In the explanatory analysis we saw an interesting behaviour of number of products with respect to exiting or not
+#computing the table with the churn rates
+churn_nb_products = df.pivot_table(
+    index = "NumOfProducts",
+    values = "Exited",
+    #mean because exit is binary
+    aggfunc = ["mean", "count"])
+
+#esthetics
+churn_nb_products = churn_nb_products.round(2)
+churn_nb_products.columns = ["Churn rate (%)", "Count"]
+churn_nb_products["Churn rate (%)"] = churn_nb_products["Churn rate (%)"] * 100
+churn_nb_products.index.name = "Number of Products"
+
+print(churn_nb_products)
+
+# intersting to see that most churn is for 3 and 4 products BUT have to keep in mind that little sample in those 2 cat
+
+# look at among those who exited, what is the repartition of the nb of products 
+plot = sns.countplot(data = df[df["Exited"] == 1], x = "Exited", hue = "NumOfProducts", palette="viridis")
+plt.show()
+
+# %% In the explanatory analysis we saw an interesting behaviour with active/inactive customers
+#computing the table with the churn rates
+churn_active = df.pivot_table(
+    index = "IsActiveMember",
+    values = "Exited",
+    #mean because exit is binary, *100 to get %
+    aggfunc = "mean")*100
+
+#esthetics
+churn_active = churn_active.round(2)
+churn_active.columns = ["Churn rate (%)"]
+churn_active.index.name = "Active member"
+
+print(churn_active)
+
+#so mainly inactive members, in explanatory statistics we saw that the distribution of this variable was even so we can compare both values
+# %% Age of the members
+df["AgeGroup"] = pd.cut(df["Age"],
+                        bins=[17, 30, 40, 50, 60, 100],
+                        labels=["18-30", "31-40", "41-50", "51-60", "60+"])
+
+#computing the table with the churn rates
+churn_age = df.pivot_table(
+    index = "AgeGroup",
+    values = "Exited",
+    #mean because exit is binary, *100 to get %
+    aggfunc = "mean")*100
+
+#esthetics
+churn_age = churn_age.round(2)
+churn_age.columns = ["Churn rate (%)"]
+churn_age.index.name = "Age"
+
+print(churn_age)
+
+
+#%% Age and country
+#computing the table with the churn rates
+churn_country_age = df.pivot_table(
+    index = "AgeGroup",
+    columns = "Geography",
+    values = "Exited",
+    #mean because exit is binary, *100 to get %
+    aggfunc = "mean") * 100
+
+#esthetics
+churn_country_age = churn_country_age.round(2)
+churn_country_age.columns = ["France churn (%)", "Germany churn (%)", "Spain churn (%)"]
+churn_country_age.index.name = "Age "
+
+print(churn_country_age)
+
+# %% Age and Gender
+#computing the table with the churn rates
+churn_gender_age = df.pivot_table(
+    index = "AgeGroup",
+    columns = "Gender",
+    values = "Exited",
+    #mean because exit is binary, *100 to get %
+    aggfunc = "mean") * 100
+
+#esthetics
+churn_gender_age = churn_gender_age.round(2)
+churn_gender_age.columns = ["Female churn (%)", "Male churn (%)"]
+churn_gender_age.index.name = "Age "
+
+print(churn_gender_age)
 
 # %%
