@@ -145,7 +145,8 @@ for var1 in [v for v in categorical_var]:
 
         #go through each value of weight_counts
         for boolean, weight_count in weight_counts.items():
-            p = ax.bar(values_var1, weight_count, label=boolean, bottom=bottom, palette="viridis")
+            p = ax.bar(values_var1, weight_count, label=boolean, bottom=bottom)
+    
             ax.bar_label(p, fmt="%.2f", label_type="center")
             #first add values for male, then for female
             bottom += weight_count
@@ -190,7 +191,7 @@ for var1 in [v for v in categorical_var]:
 
         #go through each value of weight_counts
         for boolean, weight_count in weight_counts.items():
-            p = ax.bar(values_var1, weight_count, label=boolean, bottom=bottom, palette="viridis")
+            p = ax.bar(values_var1, weight_count, label=boolean, bottom=bottom)
             ax.bar_label(p, fmt="%.2f", label_type="center")
             #first add values for male, then for female
             bottom += weight_count
@@ -201,30 +202,3 @@ for var1 in [v for v in categorical_var]:
     plt.tight_layout()        
     plt.show()
 
-
-#%% Exploring numerical variables relationships
-
-#histograms
-for var in numerical_var:
-   plot = sns.histplot(data = df, x = var, hue = "Exited", palette="viridis")
-   plot.set_title(f"Distribution of {var}")
-   plt.show()
-
-#density
-for var in numerical_var:
-   plot = sns.kdeplot(data = df, x = var, hue = "Exited", fill = True, palette="viridis")
-   plot.set_title(f"Distribution of {var}")
-   plt.show()
-
-
-#loop to explore every combination of numerical and categorical variable
-for var1 in [v for v in numerical_var]:
-    #fig, axes = plt.subplots(3,2)
-
-    for i, var2 in enumerate(categorical_var) :
-        plt.subplot(3,2, i + 1)
-        plot = sns.kdeplot(data = df, x = var1, hue = var2, fill = True, palette="viridis")
-        plot.set_title(f"Distribution of {var1}")
-    
-    plt.tight_layout()
-    plt.show()
