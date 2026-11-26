@@ -215,23 +215,6 @@ for var1 in [v for v in categorical_var]:
 
 # Adding the script for the cleaned graphs after having explored the data. 
 
-#%%
-# Descriptive statistics: characteristics of the bank's customers
-
-# 1) Numerical variables: mean, standard deviation, min, quartiles, max
-print(df[numerical_var].describe().T.round(1).to_string())
-
-# 2) Categorical variables: share of customers in each category (in %)
-for var in x_labels:
-    print((df_plot[var].value_counts(normalize=True) * 100).round(1), "\n")
-
-# 3) A few figures quoted in the report
-print("Share of empty accounts (%):", round((df["Balance"] == 0).mean() * 100, 1))
-print("Median balance of non-empty accounts:", df.loc[df["Balance"] > 0, "Balance"].median())
-print("Share of customers aged 30-45 (%):", round(df["Age"].between(30, 45).mean() * 100, 1))
-print("Share of customers with 3 or 4 products (%):", round((df["NumOfProducts"] >= 3).mean() * 100, 1))
-print("Customers with the maximum credit score (850):", (df["CreditScore"] == 850).sum())
-
 # Distributions of the numerical variables
 numerical_var = ["CreditScore", "Age", "Tenure", "Balance", "EstimatedSalary"]
 
