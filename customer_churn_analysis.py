@@ -6,6 +6,13 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import seaborn.objects as so
 
+# For the machine learning part
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, ConfusionMatrixDisplay
+
 sns.set_style("ticks") 
 sns.set_context("talk")
 sns.set_theme(style="whitegrid")
@@ -199,6 +206,269 @@ for var1 in [v for v in categorical_var]:
         ax.set_title(f"Share of {var2} in each {var1}")
         ax.legend(loc="upper right")
 
-    plt.tight_layout()        
+    plt.tight_layout()  
+
     plt.show()
 
+
+# %%
+
+# Adding the script for the cleaned graphs after having explored the data. 
+
+#%%
+# Descriptive statistics: characteristics of the bank's customers
+
+# 1) Numerical variables: mean, standard deviation, min, quartiles, max
+print(df[numerical_var].describe().T.round(1).to_string())
+
+# 2) Categorical variables: share of customers in each category (in %)
+for var in x_labels:
+    print((df_plot[var].value_counts(normalize=True) * 100).round(1), "\n")
+
+# 3) A few figures quoted in the report
+print("Share of empty accounts (%):", round((df["Balance"] == 0).mean() * 100, 1))
+print("Median balance of non-empty accounts:", df.loc[df["Balance"] > 0, "Balance"].median())
+print("Share of customers aged 30-45 (%):", round(df["Age"].between(30, 45).mean() * 100, 1))
+print("Share of customers with 3 or 4 products (%):", round((df["NumOfProducts"] >= 3).mean() * 100, 1))
+print("Customers with the maximum credit score (850):", (df["CreditScore"] == 850).sum())
+
+# Distributions of the numerical variables
+numerical_var = ["CreditScore", "Age", "Tenure", "Balance", "EstimatedSalary"]
+
+# clean names for the x-axis labels
+num_labels = {
+    "CreditScore": "Credit score",
+    "Age": "Age (years)",
+    "Tenure": "Tenure (years)",
+    "Balance": "Balance (€)",
+    "EstimatedSalary": "Estimated salary (€)",
+}
+
+print(df[numerical_var].describe())   
+
+fig = plt.figure(figsize=(14, 10))
+
+for i, var in enumerate(numerical_var):
+    plt.subplot(3, 2, i + 1)
+    plot = sns.histplot(data=df, x=var,
+                        binwidth=5 if var == "Age" else None,
+                        discrete=(var == "Tenure"))   # Tenure = full years
+    plot.set_xlabel(num_labels[var])
+    plot.set_ylabel("Number of customers")
+
+plt.tight_layout()
+plt.show()
+
+#%%
+# Distribution of the categorical variables (shares)
+
+# Rename the categorical variables for the legends of the graphs
+df_plot = df.copy()
+df_plot["Status"] = df_plot["Exited"].map({0: "Stayed", 1: "Exited"})
+df_plot["HasCrCard"] = df_plot["HasCrCard"].map({0: "No", 1: "Yes"})
+df_plot["IsActiveMember"] = df_plot["IsActiveMember"].map({0: "Inactive", 1: "Active"})
+
+# names for the x-axis labels
+x_labels = {
+    "Gender": "Gender",
+    "Geography": "Country",
+    "HasCrCard": "Has a credit card",
+    "IsActiveMember": "Activity status",
+    "NumOfProducts": "Number of products",
+    "Status": "Customer status",
+}
+
+#For the categorical variables
+plt.figure(figsize=(20, 11))
+#plt.suptitle("Distributions of categorical variables", fontsize=22)
+
+for i, var in enumerate(x_labels):
+
+   #create subplots
+   plt.subplot(2, 3, i + 1)
+
+   plot = sns.countplot(data = df_plot, x = var, stat = "proportion", color = "C0")
+   #add percentage labels
+   plot.bar_label(plot.containers[0], fmt="%.2f", label_type="center", fontsize=16)
+   plot.set_xlabel(x_labels[var])
+   #clearer than label "proportion"
+   plot.set_ylabel("Percentage")
+   #so that each plot has the same scale
+   plot.set_ylim(0, 1)
+
+plt.tight_layout()
+plt.show()
+
+# %%
+
+# Shares of the different categorical variables by customer status (exited or not) and country
+x_labels["Status"] = "Customer status"
+categorical_var = ["Gender", "Geography", "HasCrCard", "IsActiveMember", "NumOfProducts", "Status"]
+x_axis_var = ["Status", "Geography"] 
+
+for var1 in x_axis_var:
+    for var2 in [v for v in categorical_var if v != var1]:
+        shares = (
+            df_plot.groupby(var1)[var2]
+            .value_counts(normalize=True)
+            .round(2)
+            .unstack()
+        )
+
+        # create an empty figure
+        fig, ax = plt.subplots()
+        # each bar starts at 0, segments are stacked on top
+        bottom = np.zeros(len(shares.index))
+        # x-axis values as text so they are treated as categories
+        values_var1 = [str(v) for v in shares.index]
+
+        for category in shares.columns:
+            weight_count = shares[category].to_numpy()
+            p = ax.bar(values_var1, weight_count, label=category, bottom=bottom)
+            ax.bar_label(p, fmt="%.2f", label_type="center")
+            bottom += weight_count
+
+        ax.set_title(f"Share of {x_labels[var2]} by {x_labels[var1]}")
+        ax.set_xlabel(x_labels[var1])
+        ax.set_ylabel("Percentage")
+        ax.legend(title=x_labels[var2], loc="upper right")
+        plt.show()
+
+x_labels["Status"] = "Customer status"
+categorical_var = ["Gender", "Geography", "HasCrCard", "IsActiveMember", "NumOfProducts", "Status"]
+x_axis_var = ["Status", "Geography"]
+
+for var1 in x_axis_var:
+
+    fig = plt.figure(figsize=(20, 10))
+    #fig.suptitle(f"Shares of categorical variables by {x_labels[var1]}", fontsize=18)
+
+    for i, var2 in enumerate([v for v in categorical_var if v != var1]):
+        ax = plt.subplot(2, 3, i + 1)
+
+        shares = (
+            df_plot.groupby(var1)[var2]
+            .value_counts(normalize=True)
+            .round(2)
+            .unstack()
+        )
+
+        bottom = np.zeros(len(shares.index))
+        values_var1 = [str(v) for v in shares.index]
+
+        for category in shares.columns:
+            weight_count = shares[category].to_numpy()
+            p = ax.bar(values_var1, weight_count, label=category, bottom=bottom)
+            ax.bar_label(p, fmt="%.2f", label_type="center")
+            bottom += weight_count
+
+        ax.set_title(x_labels[var2])
+        ax.set_ylabel("Share")
+        ax.set_ylim(0, 1)
+        # legend on the right side of the plot
+        ax.legend(title=x_labels[var2], loc="center left", bbox_to_anchor=(1, 0.5), fontsize=10)
+
+    plt.tight_layout()
+    plt.show()
+
+# %%
+numerical_var = ["CreditScore", "Age", "Tenure", "Balance", "EstimatedSalary"]
+num_labels = {
+    "CreditScore": "Credit score",
+    "Age": "Age (years)",
+    "Tenure": "Tenure (years)",
+    "Balance": "Balance (€)",
+    "EstimatedSalary": "Estimated salary (€)",
+}
+
+# 1) Densities by customer status 
+fig = plt.figure(figsize=(18, 10))
+for i, var in enumerate(numerical_var):
+    plt.subplot(2, 3, i + 1)
+    plot = sns.kdeplot(data=df_plot, x=var, hue="Status", hue_order=["Stayed", "Exited"],
+                       fill=True, common_norm=False, palette="viridis")
+    plot.set_xlabel(num_labels[var])
+    plot.set_ylabel("Density")
+    handles = plot.legend_.legend_handles
+    plot.legend_.remove()
+
+fig.legend(handles, ["Stayed", "Exited"], title="Customer status", loc="center",
+           bbox_to_anchor=(0.83, 0.28), fontsize=14, title_fontsize=14)
+plt.tight_layout()
+plt.show()
+
+# Mean of each numerical variable by status (printed table)
+print(df_plot.groupby("Status")[numerical_var].mean().round(1))
+
+# %%
+
+# We focus on the variables that matter for churn.
+# Each bar = churn rate of the group (barplot with y="Exited" shows the mean,
+# and the mean of a 0/1 column is the share of customers who left).
+
+# Age and balance groups (IsActiveMember is already "Active" / "Inactive" in df_plot)
+df_plot["AgeGroup"] = pd.cut(df_plot["Age"], bins=[17, 30, 40, 50, 60, 100],
+                             labels=["18-30", "31-40", "41-50", "51-60", "60+"])
+df_plot["BalanceGroup"] = pd.cut(df_plot["Balance"], bins=[-1, 0, 100000, 150000, 300000],
+                                 labels=["empty", "0-100k", "100-150k", "150k+"])
+df_plot["Products"] = df_plot["NumOfProducts"].astype(str)
+
+fig, axes = plt.subplots(2, 2, figsize=(20, 13))
+
+# a) Age x activity: being inactive matters more and more with age
+sns.barplot(data=df_plot, x="AgeGroup", y="Exited", hue="IsActiveMember",
+            errorbar=None, palette="viridis", edgecolor="black", ax=axes[0, 0])
+axes[0, 0].set(title="a) Age x activity", xlabel="Age group")
+axes[0, 0].legend(title="Activity status")
+
+# b) Age x gender: women churn more at every age (the two effects just add up)
+sns.barplot(data=df_plot, x="AgeGroup", y="Exited", hue="Gender",
+            errorbar=None, palette="viridis", edgecolor="black", ax=axes[0, 1])
+axes[0, 1].set(title="b) Age x gender", xlabel="Age group")
+
+# c) Balance x country: Germany has no empty account, and the high churn
+#    of 100-150k balances only exists in Germany
+sns.barplot(data=df_plot, x="BalanceGroup", y="Exited", hue="Geography",
+            errorbar=None, palette="viridis", edgecolor="black", ax=axes[1, 0])
+axes[1, 0].set(title="c) Balance x country", xlabel="Balance (€)")
+axes[1, 0].legend(title="Country")
+
+# d) Balance x products (1 or 2 products = 97% of customers)
+#    with 1 product, an empty account is the WORST case, not the best
+sns.barplot(data=df_plot[df_plot["NumOfProducts"] <= 2], x="BalanceGroup", y="Exited",
+            hue="Products", errorbar=None, palette="viridis", edgecolor="black", ax=axes[1, 1])
+axes[1, 1].set(title="d) Balance x number of products", xlabel="Balance (€)")
+axes[1, 1].legend(title="Number of products")
+
+for ax in axes.flat:
+    ax.set_ylabel("Churn rate")
+    ax.set_ylim(0, 1)
+    ax.axhline(df["Exited"].mean(), color="black", ls="--", lw=1, zorder=0)   # bank average 20%
+    for bars in ax.containers:
+        ax.bar_label(bars, fmt="{:.0%}", fontsize=11)
+
+sns.despine()
+plt.tight_layout()
+plt.show()
+
+# %%
+# We now rank the segments from the riskiest to the safest, based on churn rate. 
+# Ranking: churn rate of each country x gender x activity group,
+# from the riskiest to the safest (one color per country)
+seg = df_plot.groupby(["Geography", "Gender", "IsActiveMember"])["Exited"].mean().reset_index()
+seg["Segment"] = seg["Geography"] + ", " + seg["Gender"] + ", " + seg["IsActiveMember"]
+seg = seg.sort_values("Exited", ascending=False)
+
+plt.figure(figsize=(11, 8))
+plot = sns.barplot(data=seg, x="Exited", y="Segment", hue="Geography",
+                   palette="viridis", edgecolor="black")
+for bars in plot.containers:
+    plot.bar_label(bars, fmt="{:.0%}", padding=5)
+plot.axvline(df["Exited"].mean(), color="black", ls="--", lw=1, zorder=0, label="bank average")
+plot.set(title="Churn rate by segment", xlabel="Churn rate", ylabel="")
+plot.legend(title="Country", loc="lower right")
+sns.despine()
+plt.tight_layout()
+plt.show()
+
+# %%
