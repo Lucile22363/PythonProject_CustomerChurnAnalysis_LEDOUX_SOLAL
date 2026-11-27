@@ -7,11 +7,10 @@ import matplotlib.pyplot as plt
 import seaborn.objects as so
 
 # For the machine learning part
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+from sklearn import model_selection, metrics, pipeline, preprocessing
 from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier, plot_tree
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, ConfusionMatrixDisplay
 
 sns.set_style("ticks") 
 sns.set_context("talk")
@@ -449,7 +448,7 @@ plot = sns.barplot(data=seg, x="Exited", y="Segment", hue="Geography",
 for bars in plot.containers:
     plot.bar_label(bars, fmt="{:.0%}", padding=5)
 plot.axvline(df["Exited"].mean(), color="black", ls="--", lw=1, zorder=0, label="bank average")
-plot.set(title="Churn rate by segment", xlabel="Churn rate", ylabel="")
+plot.set(xlabel="Churn rate", ylabel="")
 plot.legend(title="Country", loc="lower right")
 sns.despine()
 plt.tight_layout()
@@ -566,5 +565,84 @@ churn_gender_age.columns = ["Female churn (%)", "Male churn (%)"]
 churn_gender_age.index.name = "Age "
 
 print(churn_gender_age)
+
+# %%
+# Question 7 (optional): A simple model that predicts churn (random forest)
+
+from sklearn import model_selection, metrics
+from sklearn.ensemble import RandomForestClassifier
+
+# 1. Prepare the data: drop the ids, turn text columns into 0/1 columns
+df_model = df.drop(columns=["CustomerId", "Surname", "AgeGroup"])
+df_model = pd.get_dummies(df_model, columns=["Geography", "Gender"], drop_first=True, dtype=int)
+X = df_model.drop(columns="Exited")
+Y = df_model["Exited"]
+
+# 2. 70% of the customers to learn, 30% to test (same churn rate in both parts)
+X_learn, X_test, Y_learn, Y_test = model_selection.train_test_split(
+    X, Y, test_size=0.3, random_state=0, stratify=Y)
+
+# 3. Random forest of 300 trees.
+#    Only 20% of the customers leave: accuracy is misleading (predicting "stays"
+#    for everyone already gives 80%), so we give more weight to churners
+#    (class_weight="balanced") and choose the tree size with the balanced accuracy,
+#    by stratified 5-fold cross-validation on the learning set.
+rf = RandomForestClassifier(n_estimators=300, class_weight="balanced", random_state=0)
+leaf_grid = {"min_samples_leaf": [1, 5, 10, 20, 50, 100, 200]}
+cv_folds = model_selection.StratifiedKFold(5, shuffle=True, random_state=0)
+rf_tuned = model_selection.GridSearchCV(rf, leaf_grid, cv=cv_folds, n_jobs=-1,
+                                        scoring="balanced_accuracy")
+rf_tuned.fit(X_learn, Y_learn)
+print("Best parameter:", rf_tuned.best_params_,
+      "CV balanced accuracy:", round(rf_tuned.best_score_, 3))
+
+# 4. Evaluation on the test customers (never seen during the learning phase)
+Y_pred = rf_tuned.predict(X_test)
+Y_proba = rf_tuned.predict_proba(X_test)[:, 1]
+print("Baseline accuracy (predict 'stays' for everyone):", round(1 - Y_test.mean(), 3))
+print("Accuracy:         ", round(metrics.accuracy_score(Y_test, Y_pred), 3))
+print("Balanced accuracy:", round(metrics.balanced_accuracy_score(Y_test, Y_pred), 3))
+print("Precision:        ", round(metrics.precision_score(Y_test, Y_pred), 3))
+print("Recall:           ", round(metrics.recall_score(Y_test, Y_pred), 3))
+print("AUC:              ", round(metrics.roc_auc_score(Y_test, Y_proba), 3))
+
+# Confusion matrix (rows = true status, columns = predicted status) and ROC curve
+fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+metrics.ConfusionMatrixDisplay.from_predictions(Y_test, Y_pred, ax=axes[0],
+                                                display_labels=["Stayed", "Exited"],
+                                                cmap="Blues", colorbar=False)
+axes[0].set_title("Confusion matrix")
+axes[0].grid(False)   # no whitegrid lines on top of the matrix
+metrics.RocCurveDisplay.from_predictions(Y_test, Y_proba, ax=axes[1], name="Random forest")
+axes[1].plot([0, 1], [0, 1], color="grey", ls="--", lw=1)
+axes[1].set(title="ROC curve",
+            xlabel="False positive rate (1 - specificity)", ylabel="True positive rate (recall)")
+plt.tight_layout()
+plt.show()
+
+# 5. What does the model use? (importance = how much the variable helps to separate the groups)
+var_names = {
+    "CreditScore": "Credit score",
+    "Age": "Age",
+    "Tenure": "Tenure",
+    "Balance": "Balance",
+    "NumOfProducts": "Number of products",
+    "HasCrCard": "Has a credit card",
+    "IsActiveMember": "Active member",
+    "EstimatedSalary": "Estimated salary",
+    "Geography_Germany": "Germany (vs France)",
+    "Geography_Spain": "Spain (vs France)",
+    "Gender_Male": "Male (vs Female)",
+}
+results = pd.DataFrame({"Variable": X.columns.map(var_names),
+                        "Importance": rf_tuned.best_estimator_.feature_importances_})
+results = results.sort_values("Importance", ascending=False)
+
+plt.figure(figsize=(10, 7))
+sns.barplot(data=results, x="Importance", y="Variable", color="C0", edgecolor="black")
+plt.ylabel("")
+sns.despine()
+plt.tight_layout()
+plt.show()
 
 # %%
