@@ -155,7 +155,19 @@ for var1 in [v for v in categorical_var]:
 
     plt.show()
 
-# %%
+#%%
+#loop to explore every combination of numerical and categorical variable
+for var1 in [v for v in numerical_var]:
+    #fig, axes = plt.subplots(3,2)
+
+    for i, var2 in enumerate(categorical_var) :
+        plt.subplot(3,2, i + 1)
+        plot = sns.kdeplot(data = df, x = var1, hue = var2, fill = True, palette="viridis")
+        plot.set_title(f"Distribution of {var1}")
+    
+    plt.tight_layout()
+    plt.show()
+
 # Clean graphs after having explored the data 
 
 # Distributions of the numerical variables
@@ -225,39 +237,6 @@ plt.tight_layout()
 plt.show()
 
 # %%
-# Shares of the different categorical variables by customer status (exited or not) and country
-x_labels["Status"] = "Customer status"
-categorical_var = ["Gender", "Geography", "HasCrCard", "IsActiveMember", "NumOfProducts", "Status"]
-x_axis_var = ["Status", "Geography"] 
-
-for var1 in x_axis_var:
-    for var2 in [v for v in categorical_var if v != var1]:
-        shares = (
-            df_plot.groupby(var1)[var2]
-            .value_counts(normalize=True)
-            .round(2)
-            .unstack()
-        )
-
-        # create an empty figure
-        fig, ax = plt.subplots()
-        # each bar starts at 0, segments are stacked on top
-        bottom = np.zeros(len(shares.index))
-        # x-axis values as text so they are treated as categories
-        values_var1 = [str(v) for v in shares.index]
-
-        for category in shares.columns:
-            weight_count = shares[category].to_numpy()
-            p = ax.bar(values_var1, weight_count, label=category, bottom=bottom, 
-                       color=sns.color_palette("viridis", len(shares.columns))[list(shares.columns).index(category)])
-            ax.bar_label(p, fmt="%.2f", label_type="center")
-            bottom += weight_count
-
-        ax.set_title(f"Share of {x_labels[var2]} by {x_labels[var1]}")
-        ax.set_xlabel(x_labels[var1])
-        ax.set_ylabel("Percentage")
-        ax.legend(title=x_labels[var2], loc="upper right")
-        plt.show()
 
 x_labels["Status"] = "Customer status"
 categorical_var = ["Gender", "Geography", "HasCrCard", "IsActiveMember", "NumOfProducts", "Status"]
