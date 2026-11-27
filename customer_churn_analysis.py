@@ -7,9 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn.objects as so
 
 # For the machine learning part
-from sklearn import model_selection, metrics, pipeline, preprocessing
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier, plot_tree
+from sklearn import model_selection, metrics
 from sklearn.ensemble import RandomForestClassifier
 
 sns.set_style("ticks") 
@@ -21,6 +19,10 @@ path = Path(__file__).parent / "data" / "churn_bank.csv"
 df = pd.read_csv(path)
 
 print(df.head())
+
+# First part of the script contains many exploratory data analysis graphs and tables, 
+# and the second part contains the code for the cleaned graphs of the report, as well as the 
+# code for the random forest model that predicts churn based on a customer's features.
 
 # Check that the dataset is clean
 
@@ -52,9 +54,9 @@ print(churn_rate)
 print(df.select_dtypes(include = np.number).describe().T.to_string())
 
 #For the categorical variables
-
 categorical_var = ["Gender", "Geography", "HasCrCard", "IsActiveMember", "NumOfProducts", "Exited"]
 
+# Shares of all the categorical variables (bar plots)
 plt.suptitle("Distributions of categorical variables", fontsize=18, y=0.95)
 
 for i, var in enumerate(categorical_var):
@@ -74,9 +76,7 @@ for i, var in enumerate(categorical_var):
 plt.tight_layout()
 plt.show()
 
-
 #%%
-# NUMERICAL VARIABLES
 # For the numerical variables: 
 
 numerical_var = ["CreditScore", "Age", "Tenure", "Balance", "EstimatedSalary"]
@@ -89,16 +89,8 @@ for var in numerical_var:
    plot.set_title(f"Distribution of {var}")
    plt.show()
 
-#boxplots
-#shows: min, 1st quartile, median, 3rd quartile, max
-for var in numerical_var:
-   plot = sns.boxplot(data = df, x = var)
-   plot.set_title(f"Distribution of {var}")
-   plt.show()
-
-
 #%%
-#Distribution of exited and non exited customers
+# Distribution of exited and non exited customers by categorical variables (bar plots)
 
 ## all the plots on one grid
 plt.suptitle("Distributions of exited and non exited", fontsize=18, y=0.95)
@@ -116,54 +108,9 @@ plt.tight_layout()
 plt.show()
 
 
-
 #%%
-#Question 5: How are different indicators distributed by countries
+# How are different indicators distributed by countries
 
-
-# double loop for explained and explanatory var
-
-#loop for each categorical variable
-categorical_var = ["Gender", "Geography", "HasCrCard", "IsActiveMember", "NumOfProducts", "Exited"]
-
-for var1 in [v for v in categorical_var]:
-
-    #go through each categorical variable
-    for var2 in [v for v in categorical_var if v != var1] :
-        shares = (
-            df.groupby(var1)[var2]
-            .value_counts(normalize=True)
-            .round(2)
-            .unstack()
-        )
-
-        #the species are the indexes of the shares dataframe
-        values_var1 = tuple(shares.index)
-        weight_counts = {category: shares[category].to_numpy() for category in shares.columns}
-
-        #each part of the column is a subplot
-        fig, ax = plt.subplots()
-        #the bottom of the bar starts at 0, want nb of columns corresponding to the nb of values
-        bottom = np.zeros(len(values_var1))
-
-        #convert values of var 1 in str for the legend
-        values_var1 = [str(v) for v in shares.index]
-
-        #go through each value of weight_counts
-        for boolean, weight_count in weight_counts.items():
-            p = ax.bar(values_var1, weight_count, label=boolean, bottom=bottom, color = sns.color_palette("viridis", len(weight_counts))[list(weight_counts).index(boolean)])    
-            ax.bar_label(p, fmt="%.2f", label_type="center")
-            #first add values for male, then for female
-            bottom += weight_count
-
-        ax.set_title(f"Share of {var2} in each {var1}")
-        ax.legend(loc="upper right")
-
-        plt.show()
-
-
-
-#%% la même chose mais en grid
 categorical_var = ["Gender", "Geography", "HasCrCard", "IsActiveMember", "NumOfProducts", "Exited"]
 
 for var1 in [v for v in categorical_var]:
@@ -208,10 +155,8 @@ for var1 in [v for v in categorical_var]:
 
     plt.show()
 
-
 # %%
-
-# Adding the script for the cleaned graphs after having explored the data. 
+# Clean graphs after having explored the data 
 
 # Distributions of the numerical variables
 numerical_var = ["CreditScore", "Age", "Tenure", "Balance", "EstimatedSalary"]
@@ -227,10 +172,10 @@ num_labels = {
 
 print(df[numerical_var].describe())   
 
-fig = plt.figure(figsize=(14, 10))
+fig = plt.figure(figsize=(20, 10))  
 
 for i, var in enumerate(numerical_var):
-    plt.subplot(3, 2, i + 1)
+    plt.subplot(2, 3, i + 1)
     plot = sns.histplot(data=df, x=var,
                         binwidth=5 if var == "Age" else None,
                         discrete=(var == "Tenure"))   # Tenure = full years
@@ -261,7 +206,6 @@ x_labels = {
 
 #For the categorical variables
 plt.figure(figsize=(20, 11))
-#plt.suptitle("Distributions of categorical variables", fontsize=22)
 
 for i, var in enumerate(x_labels):
 
@@ -281,7 +225,6 @@ plt.tight_layout()
 plt.show()
 
 # %%
-
 # Shares of the different categorical variables by customer status (exited or not) and country
 x_labels["Status"] = "Customer status"
 categorical_var = ["Gender", "Geography", "HasCrCard", "IsActiveMember", "NumOfProducts", "Status"]
@@ -323,7 +266,6 @@ x_axis_var = ["Status", "Geography"]
 for var1 in x_axis_var:
 
     fig = plt.figure(figsize=(20, 10))
-    #fig.suptitle(f"Shares of categorical variables by {x_labels[var1]}", fontsize=18)
 
     for i, var2 in enumerate([v for v in categorical_var if v != var1]):
         ax = plt.subplot(2, 3, i + 1)
@@ -364,7 +306,7 @@ num_labels = {
     "EstimatedSalary": "Estimated salary (€)",
 }
 
-# 1) Densities by customer status 
+# Densities by customer status 
 fig = plt.figure(figsize=(18, 10))
 for i, var in enumerate(numerical_var):
     plt.subplot(2, 3, i + 1)
@@ -384,7 +326,6 @@ plt.show()
 print(df_plot.groupby("Status")[numerical_var].mean().round(1))
 
 # %%
-
 # We focus on the variables that matter for churn.
 # Each bar = churn rate of the group (barplot with y="Exited" shows the mean,
 # and the mean of a 0/1 column is the share of customers who left).
@@ -404,20 +345,18 @@ sns.barplot(data=df_plot, x="AgeGroup", y="Exited", hue="IsActiveMember",
 axes[0, 0].set(title="a) Age x activity", xlabel="Age group")
 axes[0, 0].legend(title="Activity status")
 
-# b) Age x gender: women churn more at every age (the two effects just add up)
+# b) Age x gender: women churn more at every age 
 sns.barplot(data=df_plot, x="AgeGroup", y="Exited", hue="Gender",
             errorbar=None, palette="viridis", edgecolor="black", ax=axes[0, 1])
 axes[0, 1].set(title="b) Age x gender", xlabel="Age group")
 
-# c) Balance x country: Germany has no empty account, and the high churn
-#    of 100-150k balances only exists in Germany
+# c) Balance x country
 sns.barplot(data=df_plot, x="BalanceGroup", y="Exited", hue="Geography",
             errorbar=None, palette="viridis", edgecolor="black", ax=axes[1, 0])
 axes[1, 0].set(title="c) Balance x country", xlabel="Balance (€)")
 axes[1, 0].legend(title="Country")
 
 # d) Balance x products (1 or 2 products = 97% of customers)
-#    with 1 product, an empty account is the WORST case, not the best
 sns.barplot(data=df_plot[df_plot["NumOfProducts"] <= 2], x="BalanceGroup", y="Exited",
             hue="Products", errorbar=None, palette="viridis", edgecolor="black", ax=axes[1, 1])
 axes[1, 1].set(title="d) Balance x number of products", xlabel="Balance (€)")
@@ -472,9 +411,8 @@ churn_country_gender.index.name = "Country"
 
 print(churn_country_gender)
 
-# germany has highest churn rate for both gender
-# female have higher churn rate in all countries
-
+# Germany has the highest churn rate for both gender
+# Female have higher churn rate in all countries
 
 # %% In the explanatory analysis we saw an interesting behaviour of number of products with respect to exiting or not
 #computing the table with the churn rates
@@ -492,7 +430,8 @@ churn_nb_products.index.name = "Number of Products"
 
 print(churn_nb_products)
 
-# intersting to see that most churn is for 3 and 4 products BUT have to keep in mind that little sample in those 2 cat
+# intersting to see that most churn is for 3 and 4 products BUT have to keep in mind 
+# that little sample in those 2 categories
 
 # look at among those who exited, what is the repartition of the nb of products 
 plot = sns.countplot(data = df[df["Exited"] == 1], x = "Exited", hue = "NumOfProducts", palette="viridis")
@@ -533,7 +472,6 @@ churn_age.index.name = "Age"
 
 print(churn_age)
 
-
 #%% Age and country
 #computing the table with the churn rates
 churn_country_age = df.pivot_table(
@@ -567,26 +505,23 @@ churn_gender_age.index.name = "Age "
 print(churn_gender_age)
 
 # %%
-# Question 7 (optional): A simple model that predicts churn (random forest)
+# Question 7 (optional): A simple model that predicts churn (random forest model)
 
-from sklearn import model_selection, metrics
-from sklearn.ensemble import RandomForestClassifier
-
-# 1. Prepare the data: drop the ids, turn text columns into 0/1 columns
+# Prepare the data: drop the ids, turn text columns into 0/1 columns
 df_model = df.drop(columns=["CustomerId", "Surname", "AgeGroup"])
 df_model = pd.get_dummies(df_model, columns=["Geography", "Gender"], drop_first=True, dtype=int)
 X = df_model.drop(columns="Exited")
 Y = df_model["Exited"]
 
-# 2. 70% of the customers to learn, 30% to test (same churn rate in both parts)
+# 70% of the customers to learn, 30% to test (and same churn rate in both parts)
 X_learn, X_test, Y_learn, Y_test = model_selection.train_test_split(
     X, Y, test_size=0.3, random_state=0, stratify=Y)
 
-# 3. Random forest of 300 trees.
-#    Only 20% of the customers leave: accuracy is misleading (predicting "stays"
-#    for everyone already gives 80%), so we give more weight to churners
-#    (class_weight="balanced") and choose the tree size with the balanced accuracy,
-#    by stratified 5-fold cross-validation on the learning set.
+# Random forest of 300 trees:
+# Only 20% of the customers leave: accuracy is misleading (predicting "stays" for 
+# everyone already gives 80%), so we give more weight to churners (class_weight="balanced") 
+# and choose the tree size with the balanced accuracy, by stratified 5-fold cross-validation 
+# on the learning set.
 rf = RandomForestClassifier(n_estimators=300, class_weight="balanced", random_state=0)
 leaf_grid = {"min_samples_leaf": [1, 5, 10, 20, 50, 100, 200]}
 cv_folds = model_selection.StratifiedKFold(5, shuffle=True, random_state=0)
@@ -596,7 +531,7 @@ rf_tuned.fit(X_learn, Y_learn)
 print("Best parameter:", rf_tuned.best_params_,
       "CV balanced accuracy:", round(rf_tuned.best_score_, 3))
 
-# 4. Evaluation on the test customers (never seen during the learning phase)
+# Evaluation on the test customers (never seen during the learning phase)
 Y_pred = rf_tuned.predict(X_test)
 Y_proba = rf_tuned.predict_proba(X_test)[:, 1]
 print("Baseline accuracy (predict 'stays' for everyone):", round(1 - Y_test.mean(), 3))
@@ -620,7 +555,7 @@ axes[1].set(title="ROC curve",
 plt.tight_layout()
 plt.show()
 
-# 5. What does the model use? (importance = how much the variable helps to separate the groups)
+# What does the model use? (importance = how much the variable helps to separate the groups)
 var_names = {
     "CreditScore": "Credit score",
     "Age": "Age",
