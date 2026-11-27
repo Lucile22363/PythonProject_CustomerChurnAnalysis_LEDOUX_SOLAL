@@ -520,17 +520,22 @@ print("Precision:        ", round(metrics.precision_score(Y_test, Y_pred), 3))
 print("Recall:           ", round(metrics.recall_score(Y_test, Y_pred), 3))
 print("AUC:              ", round(metrics.roc_auc_score(Y_test, Y_proba), 3))
 
-# Confusion matrix (rows = true status, columns = predicted status) and ROC curve
-fig, axes = plt.subplots(1, 2, figsize=(16, 7))
-metrics.ConfusionMatrixDisplay.from_predictions(Y_test, Y_pred, ax=axes[0],
+# Confusion matrix (rows = true status, columns = predicted status)
+fig, ax = plt.subplots(figsize=(8, 7))
+metrics.ConfusionMatrixDisplay.from_predictions(Y_test, Y_pred, ax=ax,
                                                 display_labels=["Stayed", "Exited"],
                                                 cmap="Blues", colorbar=False)
-axes[0].set_title("Confusion matrix")
-axes[0].grid(False)   # no whitegrid lines on top of the matrix
-metrics.RocCurveDisplay.from_predictions(Y_test, Y_proba, ax=axes[1], name="Random forest")
-axes[1].plot([0, 1], [0, 1], color="grey", ls="--", lw=1)
-axes[1].set(title="ROC curve",
-            xlabel="False positive rate (1 - specificity)", ylabel="True positive rate (recall)")
+ax.set_title("Confusion matrix")
+ax.grid(False)   # no whitegrid lines on top of the matrix
+plt.tight_layout()
+plt.show()
+
+# ROC curve
+fig, ax = plt.subplots(figsize=(8, 7))
+metrics.RocCurveDisplay.from_predictions(Y_test, Y_proba, ax=ax, name="Random forest")
+ax.plot([0, 1], [0, 1], color="grey", ls="--", lw=1)
+ax.set(title="ROC curve",
+       xlabel="False positive rate (1 - specificity)", ylabel="True positive rate (recall)")
 plt.tight_layout()
 plt.show()
 
